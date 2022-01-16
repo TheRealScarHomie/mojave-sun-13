@@ -7,6 +7,7 @@ GLOBAL_LIST_EMPTY(facial_hairstyles_list) //stores /datum/sprite_accessory/facia
 GLOBAL_LIST_EMPTY(facial_hairstyles_male_list) //stores only hair names
 GLOBAL_LIST_EMPTY(facial_hairstyles_female_list) //stores only hair names
 GLOBAL_LIST_EMPTY(hair_gradients_list) //stores /datum/sprite_accessory/hair_gradient indexed by name
+GLOBAL_LIST_EMPTY(facial_hair_gradients_list) //stores /datum/sprite_accessory/facial_hair_gradient indexed by name
 	//Hairstyles MS13
 GLOBAL_LIST_EMPTY(hairstyles_bald_list) //stores only hair names
 GLOBAL_LIST_EMPTY(hairstyles_short_list) //stores only hair names
@@ -200,7 +201,7 @@ GLOBAL_LIST_INIT(security_depts_prefs, sort_list(list(
 #define DBACKPACK "Department Backpack"
 #define DSATCHEL "Department Satchel"
 #define DDUFFELBAG "Department Duffel Bag"
-GLOBAL_LIST_INIT(backpacklist, list(DBACKPACK, DSATCHEL, DDUFFELBAG, GBACKPACK, GSATCHEL, GDUFFELBAG, LSATCHEL))
+//GLOBAL_LIST_INIT(backpacklist, list(DBACKPACK, DSATCHEL, DDUFFELBAG, GBACKPACK, GSATCHEL, GDUFFELBAG, LSATCHEL)) MOJAVE SUN EDIT - Prefs
 
 	//Suit/Skirt
 #define PREF_SUIT "Jumpsuit"

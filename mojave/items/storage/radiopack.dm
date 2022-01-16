@@ -6,14 +6,14 @@
 	righthand_file = 'mojave/icons/mob/inhands/items_righthand.dmi'
 	icon_state = "radiopack"
 	inhand_icon_state = "radiopack"
-	desc = "A basic handheld radio that communicates over a relatively long range, and is proven to be 254% better than yelling loudly."
+	desc = "A radio backpack primarily in use by the NCR. The peak of NCR communication, when they feel like using it."
 	slot_flags = ITEM_SLOT_BACK
 	throw_speed = 3
 	throw_range = 7
 	w_class = WEIGHT_CLASS_NORMAL
 	custom_materials = list(/datum/material/iron=75, /datum/material/glass=25)
 	var/held = 0
-	var/obj/item/radio/ms13/NCR/radio
+	var/obj/item/radio/ms13/ncr/radio
 
 /obj/item/ms13/storage/backpack/radiopack/Initialize()
 	. = ..()
@@ -22,7 +22,8 @@
 	var/datum/component/storage/STR = AddComponent(/datum/component/storage/concrete)
 	STR.max_w_class = WEIGHT_CLASS_NORMAL
 	STR.max_combined_w_class = 18
-	STR.max_items = 5
+	STR.max_items = 6
+	AddElement(/datum/element/inworld_sprite, 'mojave/icons/objects/clothing/clothing_inventory/backpack_inventory.dmi')
 
 /obj/item/ms13/storage/backpack/radiopack/Destroy()
 	STOP_PROCESSING(SSobj, src)
@@ -83,22 +84,21 @@
 	user.update_inv_back()
 
 
-/obj/item/radio/ms13/NCR
+/obj/item/radio/ms13/ncr
 	icon = 'mojave/icons/objects/hamradio.dmi'
-	name = "Walkie-Talkie"
+	name = "walkie-talkie"
 	icon_state = "handradio"
 	inhand_icon_state = "handradio_"
-	desc = "The important bit of the radiopack, this broadcasts and recieves radio messages in decent quality."
-
+	desc = "The important bit of the radiopack, this broadcasts and recieves radio messages in high quality with an amplified volume."
 	flags_1 = CONDUCT_1
 	canhear_range = 3
 	freerange = TRUE
 	w_class = WEIGHT_CLASS_SMALL
-	radio_broadcast = RADIOSTATIC_MEDIUM
+	radio_broadcast = RADIOSTATIC_LIGHT
 	var/req_radio = TRUE
 	var/obj/item/ms13/storage/backpack/radiopack/radiopack
 
-/obj/item/radio/ms13/NCR/Initialize()
+/obj/item/radio/ms13/ncr/Initialize()
 	if(istype(loc, /obj/item/ms13/storage/backpack/radiopack))
 		radiopack = loc
 
@@ -109,18 +109,18 @@
 
 	return ..()
 
-/obj/item/radio/ms13/NCR/Destroy()
+/obj/item/radio/ms13/ncr/Destroy()
 	radiopack = null
 	return ..()
 
-/obj/item/radio/ms13/NCR/dropped(mob/user)
+/obj/item/radio/ms13/ncr/dropped(mob/user)
 	. = ..()
 	if(user)
 		UnregisterSignal(user, COMSIG_MOVABLE_MOVED)
 	if(req_radio)
 		snap_back()
 
-/obj/item/radio/ms13/NCR/proc/snap_back()
+/obj/item/radio/ms13/ncr/proc/snap_back()
 	if(!radiopack)
 		return
 	forceMove(radiopack)

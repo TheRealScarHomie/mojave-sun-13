@@ -44,7 +44,7 @@
 	var/list/channels = list()  // Map from name (see communications.dm) to on/off. First entry is current department (:h)
 	var/list/secure_radio_connections
 
-	var/radio_broadcast = FALSE //MOJAVE EDIT: if this radio can be used for broadcasting messages or not
+	var/radio_broadcast = 100 //MOJAVE EDIT: 100 means it cannot broadcast and if someone somehow manages a work around, the message comes out as complete static.
 
 /obj/item/radio/suicide_act(mob/living/user)
 	user.visible_message(span_suicide("[user] starts bouncing [src] off [user.p_their()] head! It looks like [user.p_theyre()] trying to commit suicide!"))
@@ -175,7 +175,7 @@
 			. = TRUE
 		*/
 		if("broadcast") //MOJAVE EDIT START
-			if(radio_broadcast == FALSE)
+			if(radio_broadcast == 100)
 				. = FALSE
 			else
 				broadcasting = !broadcasting
@@ -205,31 +205,22 @@
 	if(HAS_TRAIT(M, TRAIT_SIGN_LANG)) //Forces Sign Language users to wear the translation gloves to speak over radios
 		var/mob/living/carbon/mute = M
 		if(istype(mute))
-			var/empty_indexes = mute.get_empty_held_indexes() //How many hands the player has empty
 			var/obj/item/clothing/gloves/radio/G = mute.get_item_by_slot(ITEM_SLOT_GLOVES)
 			if(!istype(G))
 				return FALSE
-			/* MOJAVE EDIT: moved below
-			if(length(empty_indexes) == 1)
-				message = stars(message)
-			*/
-			if(length(empty_indexes) == 0) //Due to the requirement of gloves, the arm check for normal speech would be redundant here.
-				return FALSE
-			if(mute.handcuffed)//Would be weird if they couldn't sign but their words still went over the radio
-				return FALSE
-			if(HAS_TRAIT(mute, TRAIT_HANDS_BLOCKED) || HAS_TRAIT(mute, TRAIT_EMOTEMUTE))
-				return FALSE
-			if(length(empty_indexes) == 1) //MOJAVE EDIT: Where the code belongs now
-				message = stars(message)
+			switch(mute.check_signables_state())
+				if(SIGN_ONE_HAND) // One hand full
+					message = stars(message)
+				if(SIGN_HANDS_FULL to SIGN_CUFFED)
+					return FALSE
 
 	//MOJAVE: START EDIT
 	if(radio_broadcast)
-		if(radio_broadcast == FALSE)
+		if(radio_broadcast == 100)
 			return FALSE
-		if(radio_broadcast > 0)
+		if(radio_broadcast < 100)
 			message = stars(message, radio_broadcast)
 	//MOJAVE: END EDIT
-
 	if(!spans)
 		spans = list(M.speech_span)
 	if(!language)

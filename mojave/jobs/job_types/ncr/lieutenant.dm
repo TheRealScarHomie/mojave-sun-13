@@ -12,7 +12,7 @@
 /datum/outfit/job/ms13/ncr/lieutenant
 	name = "_NCR Lieutenant"
 	jobtype = /datum/job/ms13/ncr/lieutenant
-	id = 		 /obj/item/card/id/ms13/ncrlieutenant
+	id = 		 /obj/item/card/id/ms13/ncr/lieutenant
 	uniform =    /obj/item/clothing/under/ms13/ncr/fatigues
 	head = 	     /obj/item/clothing/head/helmet/ms13/ncr/beret/officer
 	suit =       /obj/item/clothing/suit/armor/ms13/ncr/mantle/reinforced
@@ -24,6 +24,7 @@
 	backpack_contents = list(
 		/obj/item/ammo_box/magazine/ms13/deagle=1, \
 		/obj/item/stack/medical/gauze/ms13/half=1,
+		/obj/item/flashlight/ms13=1, \
 		/obj/item/stack/medical/ointment/ms13/cream/half=1)
 
 /datum/outfit/job/ms13/ncr/lieutenant/pre_equip(mob/living/carbon/human/H)

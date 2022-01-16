@@ -85,7 +85,6 @@ SUBSYSTEM_DEF(outdoor_effects)
 		InitializeTurfs()
 		initialized = TRUE
 	fire(FALSE, TRUE)
-	..()
 
 /datum/controller/subsystem/outdoor_effects/proc/InitializeTurfs(list/targets)
 	for (var/z in SSmapping.levels_by_trait(ZTRAIT_STATION))
@@ -96,9 +95,10 @@ SUBSYSTEM_DEF(outdoor_effects)
 
 
 /datum/controller/subsystem/outdoor_effects/proc/check_cycle()
-	if(station_time() > next_step_datum.start)
+	if(!next_step_datum || station_time() > next_step_datum.start)
 		get_time_of_day()
 		return TRUE
+
 	return FALSE
 
 /datum/controller/subsystem/outdoor_effects/proc/get_time_of_day()

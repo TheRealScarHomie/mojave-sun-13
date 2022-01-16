@@ -98,6 +98,7 @@
 	step(living_parent, direction)
 	last_move_diagonal = ((direction & (direction - 1)) && (living_parent.loc == next))
 	COOLDOWN_START(src, vehicle_move_cooldown, (last_move_diagonal? 2 : 1) * vehicle_move_delay)
+	return ..()
 
 /// Yeets the rider off, used for animals and cyborgs, redefined for humans who shove their piggyback rider off
 /datum/component/riding/creature/proc/force_dismount(mob/living/rider, gentle = FALSE)
@@ -123,7 +124,7 @@
 /// If we're a cyborg or animal and we spin, we yeet whoever's on us off us
 /datum/component/riding/creature/proc/check_emote(mob/living/user, datum/emote/emote)
 	SIGNAL_HANDLER
-	if((!iscyborg(user) && !isanimal(user)) || !istype(emote, /datum/emote/spin))
+	if((!iscyborg(user) && !isanimal(user)))//MOJAVE SUN EDIT - Removes Stupid non-RP Emotes
 		return
 
 	for(var/mob/yeet_mob in user.buckled_mobs)

@@ -45,16 +45,20 @@
 
 /obj/machinery/door/examine(mob/user)
 	. = ..()
+	/*MOJAVE SUN EDIT BEGIN
 	if(red_alert_access)
 		if(SSsecurity_level.current_level >= SEC_LEVEL_RED)
 			. += span_notice("Due to a security threat, its access requirements have been lifted!")
 		else
 			. += span_notice("In the event of a red alert, its access requirements will automatically lift.")
 	. += span_notice("Its maintenance panel is <b>screwed</b> in place.")
+	*///MOJAVE SUN EDIT END
 
 /obj/machinery/door/check_access_list(list/access_list)
+	/*MOJAVE SUN EDIT BEGIN
 	if(red_alert_access && SSsecurity_level.current_level >= SEC_LEVEL_RED)
 		return TRUE
+	*///MOJAVE SUN EDIT END
 	return ..()
 
 /obj/machinery/door/Initialize(mapload)
@@ -134,7 +138,7 @@
 			if(world.time - M.last_bumped <= 10)
 				return //Can bump-open one airlock per second. This is to prevent shock spam.
 			M.last_bumped = world.time
-			if(HAS_TRAIT(M, TRAIT_HANDS_BLOCKED) && !check_access(null))
+			if(HAS_TRAIT(M, TRAIT_HANDS_BLOCKED) && !check_access(null) && !emergency)
 				return
 			if(try_safety_unlock(M))
 				return

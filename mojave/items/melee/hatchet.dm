@@ -18,6 +18,7 @@
 	w_class = WEIGHT_CLASS_NORMAL
 	slot_flags = ITEM_SLOT_BELT
 	sharpness = IS_SHARP_AXE
+	toolspeed = 1.25
 	log_pickup_and_drop = TRUE
 
 /obj/item/hatchet/ms13/Initialize()
@@ -32,6 +33,7 @@
 	force = 35
 	armour_penetration = 5
 	throwforce = 30
+	toolspeed = 1
 
 /obj/item/hatchet/ms13/icepick
 	name = "ice pick"
@@ -43,6 +45,7 @@
 	wound_bonus = 2
 	armour_penetration = 10
 	sharpness = SHARP_POINTY
+	tool_behaviour = TOOL_MINING
 
 /obj/item/hatchet/ms13/tomahawk
 	name = "tomahawk"
