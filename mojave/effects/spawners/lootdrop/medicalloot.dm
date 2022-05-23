@@ -1,5 +1,9 @@
+//// These spawners are NON-STATIC spawns. If you are making changes to these pools, you should probably also make changes to the static spawns outside of the Guarenteed folder. ////
+//// The idea of these spawners it to use these EVERYWHERE. Emphasis on EVERYWHERE!!! These are the spawners you should be slapping in every other building, so that there's variety in loot locations on a per-round basis. ////
+
 /obj/effect/spawner/random/ms13/medical
 	name = "DO NOT USE ME - Mojave Sun medical spawners"
+	icon_state = "ms13_medical"
 	spawn_loot_count = 2
 	spawn_loot_double = TRUE
 	spawn_loot_chance = 45
@@ -50,20 +54,16 @@
 	spawn_loot_chance = 100
 
 	loot = list(
-			/obj/effect/spawner/random/ms13/medical/tier2 = 55,
-			/obj/effect/spawner/random/ms13/medical/tier3 = 45
+			/obj/effect/spawner/random/ms13/medical/tier2 = 45,
+			/obj/effect/spawner/random/ms13/medical/tier3 = 55
 			)
 
 /obj/effect/spawner/random/ms13/medical/bloodbag
 	name = "blood bag spawner"
-	spawn_loot_count = 2
-	spawn_loot_chance = 100
+	icon_state = "ms13_medfluid"
+	spawn_loot_count = 1
+	spawn_loot_chance = 65
 	loot = list(
-			/obj/item/reagent_containers/blood/ms13/a_plus = 15,
-			/obj/item/reagent_containers/blood/ms13/a_minus = 15,
-			/obj/item/reagent_containers/blood/ms13/b_plus = 15,
-			/obj/item/reagent_containers/blood/ms13/b_minus = 15,
-			/obj/item/reagent_containers/blood/ms13/o_plus = 15,
-			/obj/item/reagent_containers/blood/ms13/o_minus = 10,
-			/obj/item/reagent_containers/blood/ms13/radaway = 15
+			/obj/item/reagent_containers/blood/ms13/o_minus = 80,
+			/obj/item/reagent_containers/blood/ms13/radaway = 20
 			)
