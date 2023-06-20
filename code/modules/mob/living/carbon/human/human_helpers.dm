@@ -111,17 +111,6 @@
 	. = ..()
 	. += "[dna.species.type]"
 
-/mob/living/carbon/human/can_see_reagents()
-	. = ..()
-	if(.) //No need to run through all of this if it's already true.
-		return
-	if(isclothing(glasses) && (glasses.clothing_flags & SCAN_REAGENTS))
-		return TRUE
-	if(isclothing(head) && (head.clothing_flags & SCAN_REAGENTS))
-		return TRUE
-	if(isclothing(wear_mask) && (wear_mask.clothing_flags & SCAN_REAGENTS))
-		return TRUE
-
 /// When we're joining the game in [/mob/dead/new_player/proc/create_character], we increment our scar slot then store the slot in our mind datum.
 /mob/living/carbon/human/proc/increment_scar_slot()
 	var/check_ckey = ckey || client?.ckey
@@ -223,13 +212,10 @@
 /mob/living/carbon/human/proc/generate_death_examine_text()
 	var/mob/dead/observer/ghost = get_ghost(TRUE, TRUE)
 	var/t_He = p_they(TRUE)
-	var/t_his = p_their()
 	var/t_is = p_are()
 	//This checks to see if the body is revivable
 	if(key || !getorgan(/obj/item/organ/brain) || ghost?.can_reenter_corpse)
-		return span_deadsay("[t_He] [t_is] limp and unresponsive; there are no signs of life...")
-	else
-		return span_deadsay("[t_He] [t_is] limp and unresponsive; there are no signs of life and [t_his] soul has departed...")
+		return span_deadsay("[t_He] [t_is] limp and unresponsive; there are no signs of life...") //MOJAVE SUN EDIT - TG Fluff Removal, yes I ran into this randomly and decided to change it, call the atomization police
 
 ///copies over clothing preferences like underwear to another human
 /mob/living/carbon/human/proc/copy_clothing_prefs(mob/living/carbon/human/destination)

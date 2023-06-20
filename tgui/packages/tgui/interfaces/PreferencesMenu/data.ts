@@ -34,8 +34,10 @@ export type Name = {
   group: string;
 };
 
-export type ServerSpeciesData = {
+export type Species = {
   name: string;
+  desc: string;
+  lore: string[];
   icon: string;
 
   use_skintones: BooleanLike;
@@ -43,9 +45,34 @@ export type ServerSpeciesData = {
 
   enabled_features: string[];
 
-  liked_food: Food[];
-  disliked_food: Food[];
-  toxic_food: Food[];
+  perks: {
+    positive: Perk[];
+    negative: Perk[];
+    neutral: Perk[];
+  };
+
+  diet?: {
+    liked_food: Food[];
+    disliked_food: Food[];
+    toxic_food: Food[];
+  };
+
+};
+
+export type Perk = {
+  ui_icon: string;
+  name: string;
+  description: string;
+};
+
+export type Department = {
+  head?: string;
+  full_name?: string; // Mojave Sun Edit - Department full_name
+};
+
+export type Job = {
+  description: string;
+  department: string;
 };
 
 export type Quirk = {
@@ -145,6 +172,10 @@ export type PreferencesMenuData = {
 };
 
 export type ServerData = {
+  jobs: {
+    departments: Record<string, Department>;
+    jobs: Record<string, Job>;
+  };
   names: {
     types: Record<string, Name>;
   };
@@ -152,6 +183,6 @@ export type ServerData = {
   random: {
     randomizable: string[];
   };
-  species: Record<string, ServerSpeciesData>;
+  species: Record<string, Species>;
   [otheyKey: string]: unknown;
 };

@@ -1,6 +1,6 @@
 /obj/item/organ
 	name = "organ"
-	icon = 'icons/obj/surgery.dmi'
+	icon = 'mojave/icons/objects/organs/organs_world.dmi' // MOJAVE SUN EDIT - ORIGINAL IS icon = 'icons/obj/surgery.dmi'
 	var/mob/living/carbon/owner = null
 	var/status = ORGAN_ORGANIC
 	w_class = WEIGHT_CLASS_SMALL
@@ -33,6 +33,8 @@
 	var/reagent_vol = 10
 
 	var/failure_time = 0
+	///Do we effect the appearance of our mob. Used to save time in preference code
+	var/visual = TRUE
 
 // Players can look at prefs before atoms SS init, and without this
 // they would not be able to see external organs, such as moth wings.
@@ -42,6 +44,8 @@ INITIALIZE_IMMEDIATE(/obj/item/organ)
 
 /obj/item/organ/Initialize(mapload)
 	. = ..()
+	AddElement(/datum/element/world_icon, null, icon, 'mojave/icons/objects/organs/organs_inventory.dmi') // MOJAVE SUN EDIT
+	START_PROCESSING(SSobj, src)
 	if(organ_flags & ORGAN_EDIBLE)
 		AddComponent(/datum/component/edible,\
 			initial_reagents = food_reagents,\
@@ -153,9 +157,13 @@ INITIALIZE_IMMEDIATE(/obj/item/organ)
 	if(damage > high_threshold)
 		. += span_warning("[src] is starting to look discolored.")
 
-/obj/item/organ/Initialize(mapload)
-	. = ..()
+///Used as callbacks by object pooling
+/obj/item/organ/proc/exit_wardrobe()
 	START_PROCESSING(SSobj, src)
+
+//See above
+/obj/item/organ/proc/enter_wardrobe()
+	STOP_PROCESSING(SSobj, src)
 
 /obj/item/organ/Destroy()
 	if(owner)

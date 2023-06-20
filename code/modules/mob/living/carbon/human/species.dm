@@ -19,6 +19,9 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	var/limbs_id
 	///This is the fluff name. They are displayed on health analyzers and in the character setup menu. Leave them generic for other servers to customize.
 	var/name
+	/// The formatting of the name of the species in plural context. Defaults to "[name]\s" if unset.
+	/// Ex "[Plasmamen] are weak", "[Mothmen] are strong", "[Lizardpeople] don't like", "[Golems] hate"
+	var/plural_form
 	// Default color. If mutant colors are disabled, this is the color that will be used by that race.
 	var/default_color = "#FFFFFF"
 
@@ -36,7 +39,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	///Does the species use skintones or not? As of now only used by humans.
 	var/use_skintones = FALSE
 	///If your race bleeds something other than bog standard blood, change this to reagent id. For example, ethereals bleed liquid electricity.
-	var/exotic_blood = ""
+	var/datum/reagent/exotic_blood
 	///If your race uses a non standard bloodtype (A+, O-, AB-, etc). For example, lizards have L type blood.
 	var/exotic_bloodtype = ""
 	///What the species drops when gibbed by a gibber machine.
@@ -112,7 +115,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	///To use MUTCOLOR with a fixed color that's independent of the mcolor feature in DNA.
 	var/fixed_mut_color = ""
 	///Special mutation that can be found in the genepool exclusively in this species. Dont leave empty or changing species will be a headache
-	var/inert_mutation = DWARFISM
+	var/inert_mutation = /datum/mutation/human/dwarfism
 	///Used to set the mob's deathsound upon species change
 	var/deathsound
 	///Sounds to override barefeet walking
@@ -214,17 +217,26 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	///List of visual overlays created by handle_body()
 	var/list/body_vis_overlays = list()
 
+	/// Should we preload this species's organs?
+	var/preload = TRUE
+
+	/// Do we try to prevent reset_perspective() from working? Useful for Dullahans to stop perspective changes when they're looking through their head.
+	var/prevent_perspective_change = FALSE
+
 ///////////
 // PROCS //
 ///////////
 
 
 /datum/species/New()
-
 	if(!limbs_id) //if we havent set a limbs id to use, just use our own id
 		limbs_id = id
 	wings_icons = string_list(wings_icons)
-	..()
+
+	if(!plural_form)
+		plural_form = "[name]\s"
+
+	return ..()
 
 /// Gets a list of all species available to choose in roundstart.
 /proc/get_selectable_species()
@@ -313,8 +325,9 @@ GLOBAL_LIST_EMPTY(features_by_species)
  * * old_species - datum, used when regenerate organs is called in a switching species to remove old mutant organs.
  * * replace_current - boolean, forces all old organs to get deleted whether or not they pass the species' ability to keep that organ
  * * excluded_zones - list, add zone defines to block organs inside of the zones from getting handled. see headless mutation for an example
+ * * visual_only - boolean, only load organs that change how the species looks. Do not use for normal gameplay stuff
  */
-/datum/species/proc/regenerate_organs(mob/living/carbon/C,datum/species/old_species,replace_current=TRUE,list/excluded_zones)
+/datum/species/proc/regenerate_organs(mob/living/carbon/C, datum/species/old_species, replace_current = TRUE, list/excluded_zones, visual_only = FALSE)
 	//what should be put in if there is no mutantorgan (brains handled separately)
 	var/list/slot_mutantorgans = list(ORGAN_SLOT_BRAIN = mutantbrain, ORGAN_SLOT_HEART = mutantheart, ORGAN_SLOT_LUNGS = mutantlungs, ORGAN_SLOT_APPENDIX = mutantappendix, \
 	ORGAN_SLOT_EYES = mutanteyes, ORGAN_SLOT_EARS = mutantears, ORGAN_SLOT_TONGUE = mutanttongue, ORGAN_SLOT_LIVER = mutantliver, ORGAN_SLOT_STOMACH = mutantstomach)
@@ -324,8 +337,12 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 		var/obj/item/organ/oldorgan = C.getorganslot(slot) //used in removing
 		var/obj/item/organ/neworgan = slot_mutantorgans[slot] //used in adding
+
+		if(visual_only && !initial(neworgan.visual))
+			continue
+
 		var/used_neworgan = FALSE
-		neworgan = new neworgan()
+		neworgan = SSwardrobe.provide_type(neworgan)
 		var/should_have = neworgan.get_availability(src) //organ proc that points back to a species trait (so if the species is supposed to have this organ)
 
 		if(oldorgan && (!should_have || replace_current) && !(oldorgan.zone in excluded_zones) && !(oldorgan.organ_flags & ORGAN_UNREMOVABLE))
@@ -340,7 +357,6 @@ GLOBAL_LIST_EMPTY(features_by_species)
 				oldorgan.before_organ_replacement(neworgan)
 				oldorgan.Remove(C,TRUE)
 				QDEL_NULL(oldorgan) //we cannot just tab this out because we need to skip the deleting if it is a decoy brain.
-
 
 		if(oldorgan)
 			oldorgan.setOrganDamage(0)
@@ -365,7 +381,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	for(var/organ_path in mutant_organs)
 		var/obj/item/organ/current_organ = C.getorgan(organ_path)
 		if(!current_organ || replace_current)
-			var/obj/item/organ/replacement = new organ_path()
+			var/obj/item/organ/replacement = SSwardrobe.provide_type(organ_path)
 			// If there's an existing mutant organ, we're technically replacing it.
 			// Let's abuse the snowflake proc that skillchips added. Basically retains
 			// feature parity with every other organ too.
@@ -406,7 +422,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	C.mob_biotypes = inherent_biotypes
 
-	regenerate_organs(C,old_species)
+	regenerate_organs(C, old_species, visual_only = C.visual_only_organs)
 
 	if(exotic_bloodtype && C.dna.blood_type != exotic_bloodtype)
 		C.dna.blood_type = exotic_bloodtype
@@ -432,8 +448,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			//Load a persons preferences from DNA
 			var/feature_key_name = human.dna.features[initial(organ_path.feature_key)]
 
-			var/obj/item/organ/external/new_organ = new organ_path(null, feature_key_name, human.body_type)
-
+			var/obj/item/organ/external/new_organ = SSwardrobe.provide_type(organ_path)
+			new_organ.set_sprite(feature_key_name)
 			new_organ.Insert(human)
 
 	for(var/X in inherent_traits)
@@ -805,18 +821,23 @@ GLOBAL_LIST_EMPTY(features_by_species)
 				underwear_overlay = mutable_appearance(underwear.icon, underwear.icon_state, -BODY_LAYER)
 				if(!underwear.use_static)
 					underwear_overlay.color = species_human.underwear_color
+				underwear_overlay = species_human.apply_fatness_filter(underwear_overlay, TRUE)
 				standing += underwear_overlay
 
 		if(species_human.undershirt)
 			var/datum/sprite_accessory/undershirt/undershirt = GLOB.undershirt_list[species_human.undershirt]
 			if(undershirt)
-				standing += mutable_appearance(undershirt.icon, undershirt.icon_state, -BODY_LAYER)
+				var/mutable_appearance/undershirt_overlay = mutable_appearance(undershirt.icon, undershirt.icon_state, -BODY_LAYER)
+				undershirt_overlay = species_human.apply_fatness_filter(undershirt_overlay, TRUE)
+				standing += undershirt_overlay
 				//MOJAVE SUN EDIT END - Gender Prefs
 
 		if(species_human.socks && species_human.num_legs >= 2 && !(DIGITIGRADE in species_traits))
 			var/datum/sprite_accessory/socks/socks = GLOB.socks_list[species_human.socks]
 			if(socks)
-				standing += mutable_appearance(socks.icon, socks.icon_state, -BODY_LAYER)
+				var/mutable_appearance/socks_overlay = mutable_appearance(socks.icon, socks.icon_state, -BODY_LAYER)
+				socks_overlay = species_human.apply_fatness_filter(socks_overlay, TRUE)
+				standing += socks_overlay
 
 	if(standing.len)
 		species_human.overlays_standing[BODY_LAYER] = standing
@@ -1083,7 +1104,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		if(ITEM_SLOT_FEET)
 			if(H.num_legs < 2)
 				return FALSE
-			if(DIGITIGRADE in species_traits)
+			if((DIGITIGRADE in species_traits) && !(I.item_flags & IGNORE_DIGITIGRADE))
 				if(!disable_warning)
 					to_chat(H, span_warning("The footwear around here isn't compatible with your feet!"))
 				return FALSE
@@ -1149,6 +1170,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		if(ITEM_SLOT_SUITSTORE)
 			if(HAS_TRAIT(I, TRAIT_NODROP))
 				return FALSE
+			/*MOJAVE SUN EDIT BEGIN
 			if(!H.wear_suit)
 				if(!disable_warning)
 					to_chat(H, span_warning("You need a suit before you can attach this [I.name]!"))
@@ -1157,11 +1179,19 @@ GLOBAL_LIST_EMPTY(features_by_species)
 				if(!disable_warning)
 					to_chat(H, span_warning("You somehow have a suit with no defined allowed items for suit storage, stop that."))
 				return FALSE
-			if(I.w_class > WEIGHT_CLASS_BULKY)
+			MOJAVE SUN EDIT END */
+			if(I.w_class > WEIGHT_CLASS_HUGE) //MOJAVE EDIT - Original weight class is bulky, changed to allow for our guns to be huge items.
 				if(!disable_warning)
 					to_chat(H, span_warning("The [I.name] is too big to attach!")) //should be src?
 				return FALSE
-			if( istype(I, /obj/item/pda) || istype(I, /obj/item/pen) || is_type_in_list(I, H.wear_suit.allowed) )
+			// MOJAVE SUN EDIT BEGIN
+			if(istype(I, /obj/item/ms13/twohanded))
+				var/obj/item/ms13/twohanded/W = I
+				if(!W.stowable)
+					return FALSE
+				return TRUE
+			// MOJAVE SUN EDIT END
+			if(istype(I, /obj/item/gun)) // MOJAVE SUN EDIT | ORIGINAL IS "if( istype(I, /obj/item/pda) || istype(I, /obj/item/pen) || is_type_in_list(I, H.wear_suit.allowed) )" || This is so we can rebrand the """"""suit slot""""""" into a gun sling spot
 				return TRUE
 			return FALSE
 		if(ITEM_SLOT_HANDCUFFED)
@@ -1341,6 +1371,11 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			return FALSE
 
 		var/armor_block = target.run_armor_check(affecting, MELEE)
+		//MOJAVE EDIT BEGIN
+		var/armor_reduce = target.run_subarmor_check(affecting, MELEE)
+		var/subarmor_flags = target.get_subarmor_flags(affecting)
+		var/edge_protection = target.get_edge_protection(affecting)
+		//MOJAVE EDIT END
 
 		playsound(target.loc, user.dna.species.attack_sound, 25, TRUE, -1)
 
@@ -1355,12 +1390,39 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		if(user.limb_destroyer)
 			target.dismembering_strike(user, affecting.body_zone)
 
+		var/attack_direction = get_dir(user, target)
 		if(atk_effect == ATTACK_EFFECT_KICK)//kicks deal 1.5x raw damage
-			target.apply_damage(damage*1.5, user.dna.species.attack_type, affecting, armor_block)
+			/* MOJAVE EDIT REMOVAL
+			target.apply_damage(damage*1.5, user.dna.species.attack_type, affecting, armor_block, attack_direction = attack_direction)
+			*/
+			//MOJAVE EDIT BEGIN
+			var/no_defended = target.damage_armor(damage, MELEE, user.dna.species.attack_type, def_zone = user.zone_selected)
+			target.apply_damage(no_defended*1.5, \
+								user.dna.species.attack_type, \
+								affecting, \
+								armor_block, \
+								attack_direction = attack_direction, \
+								reduced = armor_reduce, \
+								edge_protection = edge_protection, \
+								subarmor_flags = subarmor_flags)
+			//MOJAVE EDIT END
 			log_combat(user, target, "kicked")
 		else//other attacks deal full raw damage + 1.5x in stamina damage
-			target.apply_damage(damage, user.dna.species.attack_type, affecting, armor_block)
-			target.apply_damage(damage*1.5, STAMINA, affecting, armor_block)
+			/* MOJAVE EDIT REMOVAL
+			target.apply_damage(damage, user.dna.species.attack_type, affecting, armor_block, attack_direction = attack_direction)
+			*/
+			//MOJAVE EDIT BEGIN
+			var/no_defended = target.damage_armor(damage, MELEE, user.dna.species.attack_type, def_zone = user.zone_selected)
+			target.apply_damage(no_defended, \
+								user.dna.species.attack_type, \
+								affecting, \
+								armor_block, \
+								attack_direction = attack_direction, \
+								reduced = armor_reduce, \
+								edge_protection = edge_protection, \
+								subarmor_flags = subarmor_flags)
+			//MOJAVE EDIT END
+			target.apply_damage(no_defended*1.5, STAMINA, affecting, armor_block)
 			log_combat(user, target, "punched")
 
 		if((target.stat != DEAD) && damage >= user.dna.species.punchstunthreshold)
@@ -1421,7 +1483,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	else
 		help(M, H, attacker_style)
 
-/datum/species/proc/spec_attacked_by(obj/item/I, mob/living/user, obj/item/bodypart/affecting, mob/living/carbon/human/H)
+/datum/species/proc/spec_attacked_by(obj/item/I, mob/living/user, obj/item/bodypart/affecting, mob/living/carbon/human/H, params)
 	// Allows you to put in item-specific reactions based on species
 	if(user != H)
 		if(H.check_shields(I, I.force, "the [I.name]", MELEE_ATTACK, I.armour_penetration))
@@ -1438,9 +1500,19 @@ GLOBAL_LIST_EMPTY(features_by_species)
 	hit_area = affecting.name
 	var/def_zone = affecting.body_zone
 
+	/* MOJAVE EDIT REMOVAL
 	var/armor_block = H.run_armor_check(affecting, MELEE, span_notice("Your armor has protected your [hit_area]!"), span_warning("Your armor has softened a hit to your [hit_area]!"),I.armour_penetration, weak_against_armour = I.weak_against_armour)
 	armor_block = min(90,armor_block) //cap damage reduction at 90%
+	*/
 	var/Iwound_bonus = I.wound_bonus
+	//MOJAVE EDIT BEGIN
+	var/armor_block = H.run_armor_check(affecting, MELEE, armour_penetration = I.armour_penetration, weak_against_armour = I.weak_against_armour)
+	armor_block = min(90,armor_block) //cap damage reduction at 90%
+	var/armor_reduce = H.run_subarmor_check(affecting, MELEE, armour_penetration = I.subtractible_armour_penetration, weak_against_armour = I.weak_against_subtractible_armour, sharpness = I.get_sharpness())
+	var/edge_protection = H.get_edge_protection(affecting)
+	edge_protection = max(0, edge_protection - I.edge_protection_penetration)
+	var/subarmor_flags = H.get_subarmor_flags(affecting)
+	//MOJAVE EDIT END
 
 	// this way, you can't wound with a surgical tool on help intent if they have a surgery active and are lying down, so a misclick with a circular saw on the wrong limb doesn't bleed them dry (they still get hit tho)
 	if((I.item_flags & SURGICAL_TOOL) && !user.combat_mode && H.body_position == LYING_DOWN && (LAZYLEN(H.surgeries) > 0))
@@ -1450,7 +1522,36 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	H.send_item_attack_message(I, user, hit_area, affecting)
 
-	apply_damage(I.force * weakness, I.damtype, def_zone, armor_block, H, wound_bonus = Iwound_bonus, bare_wound_bonus = I.bare_wound_bonus, sharpness = I.get_sharpness())
+
+	var/attack_direction = get_dir(user, H)
+	/* MOJAVE EDIT REMOVAL
+	apply_damage(I.force * weakness, I.damtype, def_zone, armor_block, H, wound_bonus = Iwound_bonus, bare_wound_bonus = I.bare_wound_bonus, sharpness = I.get_sharpness(), attack_direction = attack_direction)
+	*/
+	//MOJAVE EDIT BEGIN
+	var/no_defended = H.damage_armor(I.force * weakness, MELEE, I.damtype, def_zone = def_zone)
+	apply_damage(no_defended, \
+				I.damtype, \
+				def_zone, \
+				armor_block, \
+				H, \
+				wound_bonus = Iwound_bonus, \
+				bare_wound_bonus = I.bare_wound_bonus, \
+				sharpness = I.get_sharpness(), \
+				attack_direction = attack_direction, \
+				reduced = armor_reduce, \
+				edge_protection = edge_protection, \
+				subarmor_flags = subarmor_flags)
+
+	//COOL BABY BACK RIBS CODE HERE
+	var/list/modifiers = params2list(params)
+	if(can_be_mcribs && (def_zone == BODY_ZONE_CHEST) && LAZYACCESS(modifiers, RIGHT_CLICK) && \
+		!length(H.internal_organs) && (length(H.bodyparts) <= 1))
+		var/obj/item/bodypart/chest = H.get_bodypart(BODY_ZONE_CHEST)
+		if(chest?.get_damage() >= 100)
+			INVOKE_ASYNC(src, .proc/try_to_mcrib, user, I, H)
+			return TRUE
+
+	//MOJAVE EDIT END
 
 	if(!I.force)
 		return FALSE //item force is zero
@@ -1469,6 +1570,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 		switch(hit_area)
 			if(BODY_ZONE_HEAD)
+				/* MOJAVE EDIT REMOVAL - Likely will remove this code once we're synced back upstream.
 				if(!I.get_sharpness() && armor_block < 50)
 					if(prob(I.force))
 						H.adjustOrganLoss(ORGAN_SLOT_BRAIN, 20)
@@ -1486,7 +1588,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 						var/datum/antagonist/rev/rev = H.mind.has_antag_datum(/datum/antagonist/rev)
 						if(rev)
 							rev.remove_revolutionary(FALSE, user)
-
+				*/
 				if(bloody) //Apply blood
 					if(H.wear_mask)
 						H.wear_mask.add_mob_blood(H)
@@ -1499,12 +1601,13 @@ GLOBAL_LIST_EMPTY(features_by_species)
 						H.update_inv_glasses()
 
 			if(BODY_ZONE_CHEST)
+				/* MOJAVE EDIT REMOVAL - Likely will remove this code once we're synced back upstream.
 				if(H.stat == CONSCIOUS && !I.get_sharpness() && armor_block < 50)
 					if(prob(I.force))
 						H.visible_message(span_danger("[H] is knocked down!"), \
 									span_userdanger("You're knocked down!"))
 						H.apply_effect(60, EFFECT_KNOCKDOWN, armor_block)
-
+				*/
 				if(bloody)
 					if(H.wear_suit)
 						H.wear_suit.add_mob_blood(H)
@@ -1515,8 +1618,8 @@ GLOBAL_LIST_EMPTY(features_by_species)
 
 	return TRUE
 
-/datum/species/proc/apply_damage(damage, damagetype = BRUTE, def_zone = null, blocked, mob/living/carbon/human/H, forced = FALSE, spread_damage = FALSE, wound_bonus = 0, bare_wound_bonus = 0, sharpness = NONE)
-	SEND_SIGNAL(H, COMSIG_MOB_APPLY_DAMAGE, damage, damagetype, def_zone, wound_bonus, bare_wound_bonus, sharpness) // make sure putting wound_bonus here doesn't screw up other signals or uses for this signal
+/datum/species/proc/apply_damage(damage, damagetype = BRUTE, def_zone = null, blocked, mob/living/carbon/human/H, forced = FALSE, spread_damage = FALSE, wound_bonus = 0, bare_wound_bonus = 0, sharpness = NONE, attack_direction = null)
+	SEND_SIGNAL(H, COMSIG_MOB_APPLY_DAMAGE, damage, damagetype, def_zone, wound_bonus, bare_wound_bonus, sharpness, attack_direction)
 	var/hit_percent = (100-(blocked+armor))/100
 	hit_percent = (hit_percent * (100-H.physiology.damage_resistance))/100
 	if(!damage || (!forced && hit_percent <= 0))
@@ -1538,7 +1641,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			H.damageoverlaytemp = 20
 			var/damage_amount = forced ? damage : damage * hit_percent * brutemod * H.physiology.brute_mod
 			if(BP)
-				if(BP.receive_damage(damage_amount, 0, wound_bonus = wound_bonus, bare_wound_bonus = bare_wound_bonus, sharpness = sharpness))
+				if(BP.receive_damage(damage_amount, 0, wound_bonus = wound_bonus, bare_wound_bonus = bare_wound_bonus, sharpness = sharpness, attack_direction = attack_direction))
 					H.update_damage_overlays()
 			else//no bodypart, we deal damage with a more general method.
 				H.adjustBruteLoss(damage_amount)
@@ -1546,7 +1649,7 @@ GLOBAL_LIST_EMPTY(features_by_species)
 			H.damageoverlaytemp = 20
 			var/damage_amount = forced ? damage : damage * hit_percent * burnmod * H.physiology.burn_mod
 			if(BP)
-				if(BP.receive_damage(0, damage_amount, wound_bonus = wound_bonus, bare_wound_bonus = bare_wound_bonus, sharpness = sharpness))
+				if(BP.receive_damage(0, damage_amount, wound_bonus = wound_bonus, bare_wound_bonus = bare_wound_bonus, sharpness = sharpness, attack_direction = attack_direction))
 					H.update_damage_overlays()
 			else
 				H.adjustFireLoss(damage_amount)
@@ -1716,11 +1819,11 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		// display alerts based on how hot it is
 		switch(humi.bodytemperature)
 			if(bodytemp_heat_damage_limit to BODYTEMP_HEAT_WARNING_2)
-				humi.throw_alert("temp", /atom/movable/screen/alert/hot, 1)
+				humi.throw_alert(ALERT_TEMPERATURE, /atom/movable/screen/alert/hot, 1)
 			if(BODYTEMP_HEAT_WARNING_2 to BODYTEMP_HEAT_WARNING_3)
-				humi.throw_alert("temp", /atom/movable/screen/alert/hot, 2)
+				humi.throw_alert(ALERT_TEMPERATURE, /atom/movable/screen/alert/hot, 2)
 			else
-				humi.throw_alert("temp", /atom/movable/screen/alert/hot, 3)
+				humi.throw_alert(ALERT_TEMPERATURE, /atom/movable/screen/alert/hot, 3)
 
 	// Body temperature is too cold, and we do not have resist traits
 	else if(humi.bodytemperature < bodytemp_cold_damage_limit && !HAS_TRAIT(humi, TRAIT_RESISTCOLD))
@@ -1732,15 +1835,15 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		// Display alerts based how cold it is
 		switch(humi.bodytemperature)
 			if(BODYTEMP_COLD_WARNING_2 to bodytemp_cold_damage_limit)
-				humi.throw_alert("temp", /atom/movable/screen/alert/cold, 1)
+				humi.throw_alert(ALERT_TEMPERATURE, /atom/movable/screen/alert/cold, 1)
 			if(BODYTEMP_COLD_WARNING_3 to BODYTEMP_COLD_WARNING_2)
-				humi.throw_alert("temp", /atom/movable/screen/alert/cold, 2)
+				humi.throw_alert(ALERT_TEMPERATURE, /atom/movable/screen/alert/cold, 2)
 			else
-				humi.throw_alert("temp", /atom/movable/screen/alert/cold, 3)
+				humi.throw_alert(ALERT_TEMPERATURE, /atom/movable/screen/alert/cold, 3)
 
 	// We are not to hot or cold, remove status and moods
 	else
-		humi.clear_alert("temp")
+		humi.clear_alert(ALERT_TEMPERATURE)
 		humi.remove_movespeed_modifier(/datum/movespeed_modifier/cold)
 		SEND_SIGNAL(humi, COMSIG_CLEAR_MOOD_EVENT, "cold")
 		SEND_SIGNAL(humi, COMSIG_CLEAR_MOOD_EVENT, "hot")
@@ -1852,34 +1955,34 @@ GLOBAL_LIST_EMPTY(features_by_species)
 		if(HAZARD_HIGH_PRESSURE to INFINITY)
 			if(!HAS_TRAIT(H, TRAIT_RESISTHIGHPRESSURE))
 				H.adjustBruteLoss(min(((adjusted_pressure / HAZARD_HIGH_PRESSURE) - 1) * PRESSURE_DAMAGE_COEFFICIENT, MAX_HIGH_PRESSURE_DAMAGE) * H.physiology.pressure_mod * delta_time)
-				H.throw_alert("pressure", /atom/movable/screen/alert/highpressure, 2)
+				H.throw_alert(ALERT_PRESSURE, /atom/movable/screen/alert/highpressure, 2)
 			else
-				H.clear_alert("pressure")
+				H.clear_alert(ALERT_PRESSURE)
 
 		// High pressure, show an alert
 		if(WARNING_HIGH_PRESSURE to HAZARD_HIGH_PRESSURE)
-			H.throw_alert("pressure", /atom/movable/screen/alert/highpressure, 1)
+			H.throw_alert(ALERT_PRESSURE, /atom/movable/screen/alert/highpressure, 1)
 
 		// No pressure issues here clear pressure alerts
 		if(WARNING_LOW_PRESSURE to WARNING_HIGH_PRESSURE)
-			H.clear_alert("pressure")
+			H.clear_alert(ALERT_PRESSURE)
 
 		// Low pressure here, show an alert
 		if(HAZARD_LOW_PRESSURE to WARNING_LOW_PRESSURE)
 			// We have low pressure resit trait, clear alerts
 			if(HAS_TRAIT(H, TRAIT_RESISTLOWPRESSURE))
-				H.clear_alert("pressure")
+				H.clear_alert(ALERT_PRESSURE)
 			else
-				H.throw_alert("pressure", /atom/movable/screen/alert/lowpressure, 1)
+				H.throw_alert(ALERT_PRESSURE, /atom/movable/screen/alert/lowpressure, 1)
 
 		// Very low pressure, show an alert and take damage
 		else
 			// We have low pressure resit trait, clear alerts
 			if(HAS_TRAIT(H, TRAIT_RESISTLOWPRESSURE))
-				H.clear_alert("pressure")
+				H.clear_alert(ALERT_PRESSURE)
 			else
 				H.adjustBruteLoss(LOW_PRESSURE_DAMAGE * H.physiology.pressure_mod * delta_time)
-				H.throw_alert("pressure", /atom/movable/screen/alert/lowpressure, 2)
+				H.throw_alert(ALERT_PRESSURE, /atom/movable/screen/alert/lowpressure, 2)
 
 
 //////////
@@ -2141,3 +2244,402 @@ GLOBAL_LIST_EMPTY(features_by_species)
 /// Returns the species's scream sound.
 /datum/species/proc/get_scream_sound(mob/living/carbon/human/human)
 	return
+
+/datum/species/proc/get_types_to_preload()
+	var/list/to_store = list()
+	to_store += mutant_organs
+	for(var/obj/item/organ/external/horny as anything in external_organs)
+		to_store += horny //Haha get it?
+
+	//Don't preload brains, cause reuse becomes a horrible headache
+	to_store += mutantheart
+	to_store += mutantlungs
+	to_store += mutanteyes
+	to_store += mutantears
+	to_store += mutanttongue
+	to_store += mutantliver
+	to_store += mutantstomach
+	to_store += mutantappendix
+	//We don't cache mutant hands because it's not constrained enough, too high a potential for failure
+	return to_store
+
+
+/**
+ * Owner login
+ */
+
+/**
+ * A simple proc to be overwritten if something needs to be done when a mob logs in. Does nothing by default.
+ *
+ * Arguments:
+ * * owner - The owner of our species.
+ */
+/datum/species/proc/on_owner_login(mob/living/carbon/human/owner)
+	return
+
+/**
+ * Gets a short description for the specices. Should be relatively succinct.
+ * Used in the preference menu.
+ *
+ * Returns a string.
+ */
+/datum/species/proc/get_species_description()
+	SHOULD_CALL_PARENT(FALSE)
+
+	stack_trace("Species [name] ([type]) did not have a description set, and is a selectable roundstart race! Override get_species_description.")
+	return "No species description set, file a bug report!"
+
+/**
+ * Gets the lore behind the type of species. Can be long.
+ * Used in the preference menu.
+ *
+ * Returns a list of strings.
+ * Between each entry in the list, a newline will be inserted, for formatting.
+ */
+/datum/species/proc/get_species_lore()
+	SHOULD_CALL_PARENT(FALSE)
+	RETURN_TYPE(/list)
+
+	stack_trace("Species [name] ([type]) did not have lore set, and is a selectable roundstart race! Override get_species_lore.")
+	return list("No species lore set, file a bug report!")
+
+/**
+ * Translate the species liked foods from bitfields into strings
+ * and returns it in the form of an associated list.
+ *
+ * Returns a list, or null if they have no diet.
+ */
+/datum/species/proc/get_species_diet()
+	if(TRAIT_NOHUNGER in inherent_traits)
+		return null
+
+	var/list/food_flags = FOOD_FLAGS
+
+	return list(
+		"liked_food" = bitfield_to_list(liked_food, food_flags),
+		"disliked_food" = bitfield_to_list(disliked_food, food_flags),
+		"toxic_food" = bitfield_to_list(toxic_food, food_flags),
+	)
+
+/**
+ * Generates a list of "perks" related to this species
+ * (Postives, neutrals, and negatives)
+ * in the format of a list of lists.
+ * Used in the preference menu.
+ *
+ * "Perk" format is as followed:
+ * list(
+ *   SPECIES_PERK_TYPE = type of perk (postiive, negative, neutral - use the defines)
+ *   SPECIES_PERK_ICON = icon shown within the UI
+ *   SPECIES_PERK_NAME = name of the perk on hover
+ *   SPECIES_PERK_DESC = description of the perk on hover
+ * )
+ *
+ * Returns a list of lists.
+ * The outer list is an assoc list of [perk type]s to a list of perks.
+ * The innter list is a list of perks. Can be empty, but won't be null.
+ */
+/datum/species/proc/get_species_perks()
+	var/list/species_perks = list()
+
+	// Let us get every perk we can concieve of in one big list.
+	// The order these are called (kind of) matters.
+	// Species unique perks first, as they're more important than genetic perks,
+	// and language perk last, as it comes at the end of the perks list
+	species_perks += create_pref_unique_perks()
+	species_perks += create_pref_blood_perks()
+	species_perks += create_pref_combat_perks()
+	species_perks += create_pref_damage_perks()
+	species_perks += create_pref_temperature_perks()
+	species_perks += create_pref_traits_perks()
+	species_perks += create_pref_biotypes_perks()
+	species_perks += create_pref_language_perk()
+
+	// Some overrides may return `null`, prevent those from jamming up the list.
+	list_clear_nulls(species_perks)
+
+	// Now let's sort them out for cleanliness and sanity
+	var/list/perks_to_return = list(
+		SPECIES_POSITIVE_PERK = list(),
+		SPECIES_NEUTRAL_PERK = list(),
+		SPECIES_NEGATIVE_PERK =  list(),
+	)
+
+	for(var/list/perk as anything in species_perks)
+		var/perk_type = perk[SPECIES_PERK_TYPE]
+		// If we find a perk that isn't postiive, negative, or neutral,
+		// it's a bad entry - don't add it to our list. Throw a stack trace and skip it instead.
+		if(isnull(perks_to_return[perk_type]))
+			stack_trace("Invalid species perk ([perk[SPECIES_PERK_NAME]]) found for species [name]. \
+				The type should be positive, negative, or neutral. (Got: [perk_type])")
+			continue
+
+		perks_to_return[perk_type] += list(perk)
+
+	return perks_to_return
+
+/**
+ * Used to add any species specific perks to the perk list.
+ *
+ * Returns null by default. When overriding, return a list of perks.
+ */
+/datum/species/proc/create_pref_unique_perks()
+	return null
+
+/**
+ * Adds adds any perks related to combat.
+ * For example, the damage type of their punches.
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_combat_perks()
+	var/list/to_add = list()
+
+	if(attack_type != BRUTE)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEUTRAL_PERK,
+			SPECIES_PERK_ICON = "fist-raised",
+			SPECIES_PERK_NAME = "Elemental Attacker",
+			SPECIES_PERK_DESC = "[plural_form] deal [attack_type] damage with their punches instead of brute.",
+		))
+
+	return to_add
+
+/**
+ * Adds adds any perks related to sustaining damage.
+ * For example, brute damage vulnerability, or fire damage resistance.
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_damage_perks()
+	var/list/to_add = list()
+
+	// Brute related
+	if(brutemod > 1)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "band-aid",
+			SPECIES_PERK_NAME = "Brutal Weakness",
+			SPECIES_PERK_DESC = "[plural_form] are weak to brute damage.",
+		))
+
+	if(brutemod < 1)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "shield-alt",
+			SPECIES_PERK_NAME = "Brutal Resilience",
+			SPECIES_PERK_DESC = "[plural_form] are resilient to bruising and brute damage.",
+		))
+
+	// Burn related
+	if(burnmod > 1)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "burn",
+			SPECIES_PERK_NAME = "Fire Weakness",
+			SPECIES_PERK_DESC = "[plural_form] are weak to fire and burn damage.",
+		))
+
+	if(burnmod < 1)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "shield-alt",
+			SPECIES_PERK_NAME = "Fire Resilience",
+			SPECIES_PERK_DESC = "[plural_form] are resilient to flames, and burn damage.",
+		))
+
+	// Shock damage
+	if(siemens_coeff > 1)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "bolt",
+			SPECIES_PERK_NAME = "Shock Vulnerability",
+			SPECIES_PERK_DESC = "[plural_form] are vulnerable to being shocked.",
+		))
+
+	if(siemens_coeff < 1)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "shield-alt",
+			SPECIES_PERK_NAME = "Shock Resilience",
+			SPECIES_PERK_DESC = "[plural_form] are resilient to being shocked.",
+		))
+
+	return to_add
+
+/**
+ * Adds adds any perks related to how the species deals with temperature.
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_temperature_perks()
+	var/list/to_add = list()
+
+	// Hot temperature tolerance
+	if(heatmod > 1 || bodytemp_heat_damage_limit < BODYTEMP_HEAT_DAMAGE_LIMIT)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "temperature-high",
+			SPECIES_PERK_NAME = "Heat Vulnerability",
+			SPECIES_PERK_DESC = "[plural_form] are vulnerable to high temperatures.",
+		))
+
+	if(heatmod < 1 || bodytemp_heat_damage_limit > BODYTEMP_HEAT_DAMAGE_LIMIT)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "thermometer-empty",
+			SPECIES_PERK_NAME = "Heat Resilience",
+			SPECIES_PERK_DESC = "[plural_form] are resilient to hotter environments.",
+		))
+
+	// Cold temperature tolerance
+	if(coldmod > 1 || bodytemp_cold_damage_limit > BODYTEMP_COLD_DAMAGE_LIMIT)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "temperature-low",
+			SPECIES_PERK_NAME = "Cold Vulnerability",
+			SPECIES_PERK_DESC = "[plural_form] are vulnerable to cold temperatures.",
+		))
+
+	if(coldmod < 1 || bodytemp_cold_damage_limit < BODYTEMP_COLD_DAMAGE_LIMIT)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "thermometer-empty",
+			SPECIES_PERK_NAME = "Cold Resilience",
+			SPECIES_PERK_DESC = "[plural_form] are resilient to colder environments.",
+		))
+
+	return to_add
+
+/**
+ * Adds adds any perks related to the species' blood (or lack thereof).
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_blood_perks()
+	var/list/to_add = list()
+
+	// NOBLOOD takes priority by default
+	if(NOBLOOD in species_traits)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "tint-slash",
+			SPECIES_PERK_NAME = "Bloodletted",
+			SPECIES_PERK_DESC = "[plural_form] do not have blood.",
+		))
+
+	// Otherwise, check if their exotic blood is a valid typepath
+	else if(ispath(exotic_blood))
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEUTRAL_PERK,
+			SPECIES_PERK_ICON = "tint",
+			SPECIES_PERK_NAME = initial(exotic_blood.name),
+			SPECIES_PERK_DESC = "[name] blood is [initial(exotic_blood.name)], which can make recieving medical treatment harder.",
+		))
+
+	// Otherwise otherwise, see if they have an exotic bloodtype set
+	else if(exotic_bloodtype)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEUTRAL_PERK,
+			SPECIES_PERK_ICON = "tint",
+			SPECIES_PERK_NAME = "Exotic Blood",
+			SPECIES_PERK_DESC = "[plural_form] have \"[exotic_bloodtype]\" type blood, which can make recieving medical treatment harder.",
+		))
+
+	return to_add
+
+/**
+ * Adds adds any perks related to the species' inherent_traits list.
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_traits_perks()
+	var/list/to_add = list()
+
+	if(TRAIT_LIMBATTACHMENT in inherent_traits)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "user-plus",
+			SPECIES_PERK_NAME = "Limbs Easily Reattached",
+			SPECIES_PERK_DESC = "[plural_form] limbs are easily readded, and as such do not \
+				require surgery to restore. Simply pick it up and pop it back in, champ!",
+		))
+
+	if(TRAIT_EASYDISMEMBER in inherent_traits)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "user-times",
+			SPECIES_PERK_NAME = "Limbs Easily Dismembered",
+			SPECIES_PERK_DESC = "[plural_form] limbs are not secured well, and as such they are easily dismembered.",
+		))
+
+	if(TRAIT_EASILY_WOUNDED in inherent_traits)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEGATIVE_PERK,
+			SPECIES_PERK_ICON = "user-times",
+			SPECIES_PERK_NAME = "Easily Wounded",
+			SPECIES_PERK_DESC = "[plural_form] skin is very weak and fragile. They are much easier to apply serious wounds to.",
+		))
+
+	if(TRAIT_TOXINLOVER in inherent_traits)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_NEUTRAL_PERK,
+			SPECIES_PERK_ICON = "syringe",
+			SPECIES_PERK_NAME = "Toxins Lover",
+			SPECIES_PERK_DESC = "Toxins damage dealt to [plural_form] are reversed - healing toxins will instead cause harm, and \
+				causing toxins will instead cause healing. Be careful around purging chemicals!",
+		))
+
+	return to_add
+
+/**
+ * Adds adds any perks related to the species' inherent_biotypes flags.
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_biotypes_perks()
+	var/list/to_add = list()
+
+	if(inherent_biotypes & MOB_UNDEAD)
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "skull",
+			SPECIES_PERK_NAME = "Undead",
+			SPECIES_PERK_DESC = "[plural_form] are of the undead! The undead do not have the need to eat or breathe, and \
+				most viruses will not be able to infect a walking corpse. Their worries mostly stop at remaining in one piece, really.",
+		))
+
+	return to_add
+
+/**
+ * Adds in a language perk based on all the languages the species
+ * can speak by default (according to their language holder).
+ *
+ * Returns a list containing perks, or an empty list.
+ */
+/datum/species/proc/create_pref_language_perk()
+	var/list/to_add = list()
+
+	// Grab galactic common as a path, for comparisons
+	var/datum/language/common_language = /datum/language/common
+
+	// Now let's find all the languages they can speak that aren't common
+	var/list/bonus_languages = list()
+	var/datum/language_holder/temp_holder = new species_language_holder()
+	for(var/datum/language/language_type as anything in temp_holder.spoken_languages)
+		if(ispath(language_type, common_language))
+			continue
+		bonus_languages += initial(language_type.name)
+
+	// If we have any languages we can speak: create a perk for them all
+	if(length(bonus_languages))
+		to_add += list(list(
+			SPECIES_PERK_TYPE = SPECIES_POSITIVE_PERK,
+			SPECIES_PERK_ICON = "comment",
+			SPECIES_PERK_NAME = "Native Speaker",
+			SPECIES_PERK_DESC = "Alongside [initial(common_language.name)], [plural_form] gain the ability to speak [english_list(bonus_languages)].",
+		))
+
+	qdel(temp_holder)
+
+	return to_add

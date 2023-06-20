@@ -86,12 +86,14 @@
 	visible_mask.plane = O_LIGHTING_VISUAL_PLANE
 	visible_mask.appearance_flags = RESET_COLOR | RESET_ALPHA | RESET_TRANSFORM
 	visible_mask.alpha = 0
+	visible_mask.layer = 2
 	if(is_directional)
 		directional = TRUE
 		cone = image('icons/effects/light_overlays/light_cone.dmi', icon_state = "light")
 		cone.plane = O_LIGHTING_VISUAL_PLANE
 		cone.appearance_flags = RESET_COLOR | RESET_ALPHA | RESET_TRANSFORM
 		cone.alpha = 110
+		cone.layer = 3
 		cone.transform = cone.transform.Translate(-32, -32)
 		set_direction(movable_parent.dir)
 	if(!isnull(_range))
@@ -249,6 +251,7 @@
 		RegisterSignal(new_holder, COMSIG_LIGHT_EATER_QUEUE, .proc/on_light_eater)
 		if(directional)
 			RegisterSignal(new_holder, COMSIG_ATOM_DIR_CHANGE, .proc/on_holder_dir_change)
+			set_direction(new_holder.dir)
 	if(overlay_lighting_flags & LIGHTING_ON)
 		add_dynamic_lumi()
 		make_luminosity_update()

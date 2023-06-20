@@ -47,7 +47,7 @@
 	head.flash2 = new(head)
 	chest = new(src)
 	chest.wired = TRUE
-	chest.cell = new /obj/item/stock_parts/cell/high/plus(chest)
+	chest.cell = new /obj/item/stock_parts/cell/high(chest)
 	update_appearance()
 
 /obj/item/robot_suit/update_overlays()
@@ -255,7 +255,7 @@
 				return
 
 			var/mob/living/brain/brainmob = M.brainmob
-			if(is_banned_from(brainmob.ckey, "Cyborg") || QDELETED(src) || QDELETED(brainmob) || QDELETED(user) || QDELETED(M) || !Adjacent(user))
+			if(is_banned_from(brainmob.ckey, JOB_CYBORG) || QDELETED(src) || QDELETED(brainmob) || QDELETED(user) || QDELETED(M) || !Adjacent(user))
 				if(!QDELETED(M))
 					to_chat(user, span_warning("This [M.name] does not seem to fit!"))
 				return
@@ -289,7 +289,7 @@
 					O.log_current_laws()
 
 			brainmob.mind?.remove_antags_for_borging()
-			O.job = "Cyborg"
+			O.job = JOB_CYBORG
 
 			O.cell = chest.cell
 			chest.cell.forceMove(O)
@@ -348,7 +348,7 @@
 			chest.cell.forceMove(O)
 			chest.cell = null
 			O.locked = panel_locked
-			O.job = "Cyborg"
+			O.job = JOB_CYBORG
 			forceMove(O)
 			O.robot_suit = src
 			if(!locomotion)

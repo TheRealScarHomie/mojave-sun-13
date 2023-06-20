@@ -147,6 +147,8 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_NEARSIGHT "nearsighted"
 #define TRAIT_FAT "fat"
 #define TRAIT_HUSK "husk"
+///Blacklisted from being revived via defibrilator
+#define TRAIT_DEFIB_BLACKLISTED "defib_blacklisted"
 #define TRAIT_BADDNA "baddna"
 #define TRAIT_CLUMSY "clumsy"
 /// means that you can't use weapons with normal trigger guards.
@@ -195,6 +197,8 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_NODISMEMBER "dismember_immunity"
 #define TRAIT_NOFIRE "nonflammable"
 #define TRAIT_NOFIRE_SPREAD "no_fire_spreading"
+/// Prevents plasmamen from self-igniting
+#define TRAIT_NOSELFIGNITION "no_selfignition"
 #define TRAIT_NOGUNS "no_guns"
 #define TRAIT_NOHUNGER "no_hunger"
 #define TRAIT_NOMETABOLISM "no_metabolism"
@@ -212,6 +216,8 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_NOBREATH "no_breath"
 #define TRAIT_ANTIMAGIC "anti_magic"
 #define TRAIT_HOLY "holy"
+/// Like antimagic, but doesn't block the user from casting
+#define TRAIT_ANTIMAGIC_NO_SELFBLOCK "anti_magic_no_selfblock"
 #define TRAIT_DEPRESSION "depression"
 #define TRAIT_JOLLY "jolly"
 #define TRAIT_NOCRITDAMAGE "no_crit"
@@ -234,10 +240,20 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_PRESENT_VISION "present-vision"
 #define TRAIT_DISK_VERIFIER "disk-verifier"
 #define TRAIT_NOMOBSWAP "no-mob-swap"
+/// Gives us turf, mob and object vision through walls
 #define TRAIT_XRAY_VISION "xray_vision"
+/// Gives us mob vision through walls and slight night vision
+#define TRAIT_THERMAL_VISION "thermal_vision"
+/// Gives us turf vision through walls and slight night vision
+#define TRAIT_MESON_VISION "meson_vision"
+/// Gives us Night vision
+#define TRAIT_TRUE_NIGHT_VISION "true_night_vision"
+/// Negates our gravity, letting us move normally on floors in 0-g
+#define TRAIT_NEGATES_GRAVITY "negates_gravity"
+/// Lets us scan reagents
+#define TRAIT_REAGENT_SCANNER "reagent_scanner"
 /// Can weave webs into cloth
 #define TRAIT_WEB_WEAVER "web_weaver"
-#define TRAIT_THERMAL_VISION "thermal_vision"
 #define TRAIT_ABDUCTOR_TRAINING "abductor-training"
 #define TRAIT_ABDUCTOR_SCIENTIST_TRAINING "abductor-scientist-training"
 #define TRAIT_SURGEON "surgeon"
@@ -289,12 +305,16 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_PERMANENTLY_ONFIRE "permanently_onfire"
 /// Galactic Common Sign Language
 #define TRAIT_SIGN_LANG "sign_language"
+/// This mob is able to use sign language over the radio.
+#define TRAIT_CAN_SIGN_ON_COMMS "can_sign_on_comms"
 /// nobody can use martial arts on this mob
 #define TRAIT_MARTIAL_ARTS_IMMUNE "martial_arts_immune"
 /// You've been cursed with a living duffelbag, and can't have more added
 #define TRAIT_DUFFEL_CURSE_PROOF "duffel_cursed"
 /// Revenants draining you only get a very small benefit.
 #define TRAIT_WEAK_SOUL "weak_soul"
+/// This mob has no soul
+#define TRAIT_NO_SOUL "no_soul"
 /// Prevents mob from riding mobs when buckled onto something
 #define TRAIT_CANT_RIDE "cant_ride"
 /// Prevents a mob from being unbuckled, currently only used to prevent people from falling over on the tram
@@ -315,6 +335,8 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_PLASMABURNT "plasma_burnt"
 /// Addictions don't tick down, basically they're permanently addicted
 #define TRAIT_HOPELESSLY_ADDICTED "hopelessly_addicted"
+/// This mob has a cult halo.
+#define TRAIT_CULT_HALO "cult_halo"
 /// Their eyes glow an unnatural red colour. Currently used to set special examine text on humans. Does not guarantee the mob's eyes are coloured red, nor that there is any visible glow on their character sprite.
 #define TRAIT_UNNATURAL_RED_GLOWY_EYES "unnatural_red_glowy_eyes"
 /// Their eyes are bloodshot. Currently used to set special examine text on humans. Examine text is overridden by TRAIT_UNNATURAL_RED_GLOWY_EYES.
@@ -331,6 +353,8 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_SPARRING "sparring"
 /// The user is currently challenging an elite mining mob. Prevents him from challenging another until he's either lost or won.
 #define TRAIT_ELITE_CHALLENGER "elite_challenger"
+/// For living mobs. It signals that the mob shouldn't have their data written in an external json for persistence.
+#define TRAIT_DONT_WRITE_MEMORY "dont_write_memory"
 
 #define TRAIT_NOBLEED "nobleed" //This carbon doesn't bleed
 /// This atom can ignore the "is on a turf" check for simple AI datum attacks, allowing them to attack from bags or lockers as long as any other conditions are met
@@ -362,11 +386,17 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 /// Trait used by fugu glands to avoid double buffing
 #define TRAIT_FUGU_GLANDED "fugu_glanded"
 
+/// When someone with this trait fires a ranged weapon, their fire delays and click cooldowns are halved
+#define TRAIT_DOUBLE_TAP "double_tap"
+
 /// Trait applied to [/datum/mind] to stop someone from using the cursed hot springs to polymorph more than once.
 #define TRAIT_HOT_SPRING_CURSED "hot_spring_cursed"
 
 /// If something has been engraved/cannot be engraved
 #define TRAIT_NOT_ENGRAVABLE "not_engravable"
+
+/// Whether or not orbiting is blocked or not
+#define TRAIT_ORBITING_FORBIDDEN "orbiting_forbidden"
 
 // METABOLISMS
 // Various jobs on the station have historically had better reactions
@@ -379,7 +409,6 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_CULINARY_METABOLISM "culinary_metabolism"
 #define TRAIT_COMEDY_METABOLISM "comedy_metabolism"
 #define TRAIT_MEDICAL_METABOLISM "medical_metabolism"
-#define TRAIT_GREYTIDE_METABOLISM "greytide_metabolism"
 #define TRAIT_ENGINEER_METABOLISM "engineer_metabolism"
 #define TRAIT_ROYAL_METABOLISM "royal_metabolism"
 #define TRAIT_PRETENDER_ROYAL_METABOLISM "pretender_royal_metabolism"
@@ -429,12 +458,14 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 /// Used for limbs.
 #define TRAIT_DISABLED_BY_WOUND "disabled-by-wound"
 
+
+//important_recursive_contents traits
 /*
  * Used for movables that need to be updated, via COMSIG_ENTER_AREA and COMSIG_EXIT_AREA, when transitioning areas.
  * Use [/atom/movable/proc/become_area_sensitive(trait_source)] to properly enable it. How you remove it isn't as important.
  */
 #define TRAIT_AREA_SENSITIVE "area-sensitive"
-
+///every hearing sensitive atom has this trait
 #define TRAIT_HEARING_SENSITIVE "hearing_sensitive"
 
 /// Climbable trait, given and taken by the climbable element when added or removed. Exists to be easily checked via HAS_TRAIT().
@@ -478,6 +509,14 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_WIELDED "wielded"
 /// Buckling yourself to objects with this trait won't immobilize you
 #define TRAIT_NO_IMMOBILIZE "no_immobilize"
+/// Prevents stripping this equipment
+#define TRAIT_NO_STRIP "no_strip"
+/// Disallows this item from being pricetagged with a barcode
+#define TRAIT_NO_BARCODES "no_barcode"
+/// Allows heretics to cast their spells.
+#define TRAIT_ALLOW_HERETIC_CASTING "allow_heretic_casting"
+/// Designates a heart as a living heart for a heretic.
+#define TRAIT_LIVING_HEART "living_heart"
 
 //quirk traits
 #define TRAIT_ALCOHOL_TOLERANCE "alcohol_tolerance"
@@ -511,6 +550,9 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_SMOKER "smoker"
 /// Gives you the Shifty Eyes quirk, rarely making people who examine you think you examined them back even when you didn't
 #define TRAIT_SHIFTY_EYES "shifty_eyes"
+
+///Trait for the gamer quirk.
+#define TRAIT_GAMER "gamer"
 
 ///Trait for dryable items
 #define TRAIT_DRYABLE "trait_dryable"
@@ -561,6 +603,7 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 /// trait denoting someone will sometimes recover out of crit
 #define TRAIT_UNBREAKABLE "unbreakable"
 
+
 //Medical Categories for quirks
 #define CAT_QUIRK_ALL 0
 #define CAT_QUIRK_NOTES 1
@@ -592,6 +635,7 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define ADMIN_TRAIT "admin"
 #define CHANGELING_TRAIT "changeling"
 #define CULT_TRAIT "cult"
+#define LICH_TRAIT "lich"
 /// The item is magically cursed
 #define CURSED_ITEM_TRAIT(item_type) "cursed_item_[item_type]"
 #define ABSTRACT_ITEM_TRAIT "abstract-item"
@@ -713,9 +757,11 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define PAI_FOLDED "pai-folded"
 /// Trait applied to brain mobs when they lack external aid for locomotion, such as being inside a mech.
 #define BRAIN_UNAIDED "brain-unaided"
+/// Trait applied by MODsuits.
+#define MOD_TRAIT "mod"
 /// Trait applied by element
 #define ELEMENT_TRAIT(source) "element_trait_[source]"
-/// Trait granted by [/obj/item/clothing/head/helmet/space/hardsuit/berserker]
+/// Trait granted by the berserker hood.
 #define BERSERK_TRAIT "berserk_trait"
 /// Trait granted by [/obj/item/rod_of_asclepius]
 #define HIPPOCRATIC_OATH_TRAIT "hippocratic_oath"
@@ -729,6 +775,10 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define DRONE_SHY_TRAIT "drone_shy"
 /// Pacifism trait given by stabilized light pink extracts.
 #define STABILIZED_LIGHT_PINK_TRAIT "stabilized_light_pink"
+/// Given by the multiple_lives component to the previous body of the mob upon death.
+#define EXPIRED_LIFE_TRAIT "expired_life"
+/// Trait given to an atom/movable when they orbit something.
+#define ORBITING_TRAIT "orbiting"
 
 /**
 * Trait granted by [/mob/living/carbon/Initialize] and
@@ -805,5 +855,9 @@ Remember to update _globalvars/traits.dm if you're adding/removing/renaming trai
 #define TRAIT_MEDICAL_TRAINING "medical_training" //Trait for medical jobs that allows better crafting of medical items
 
 #define TRAIT_SCRIBE_TRAINING "scribe_training" //Trait for BoS Scribes that allows better electronics crafting
+
+#define TRAIT_LEGION_SMITHING "legion_smithing" //Trait for Legion Blacksmith to make Legion weapon recipes
+
+#define TRAIT_DRY_SHAMAN "drylander_shaman" //Trait for the Drylander Shaman to make ammo
 
 // MOJAVE JOB TRAITS END

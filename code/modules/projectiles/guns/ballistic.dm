@@ -89,6 +89,8 @@
 	var/flip_cooldown = 0
 	var/suppressor_x_offset ///pixel offset for the suppressor overlay on the x axis.
 	var/suppressor_y_offset ///pixel offset for the suppressor overlay on the y axis.
+	/// Check if you are able to see if a weapon has a bullet loaded in or not.
+	var/hidden_chambered = FALSE
 
 	///Gun internal magazine modification and misfiring
 
@@ -131,8 +133,8 @@
 	update_appearance()
 	RegisterSignal(src, COMSIG_ITEM_RECHARGED, .proc/instant_reload)
 
-/obj/item/gun/ballistic/add_weapon_description()
-	AddElement(/datum/element/weapon_description, attached_proc = .proc/add_notes_ballistic)
+/* /obj/item/gun/ballistic/add_weapon_description()
+	AddElement(/datum/element/weapon_description, attached_proc = .proc/add_notes_ballistic) //MOJAVE EDIT - Comments out this proc because weapon_description in general is commented out.
 
 /**
  *
@@ -144,7 +146,7 @@
 	if(magazine) // Make sure you have a magazine, to get the notes from
 		return "\n[magazine.add_notes_box()]"
 	else
-		return "\nThe warning attached to the magazine is missing..."
+		return "\nThe warning attached to the magazine is missing..." */
 
 /obj/item/gun/ballistic/vv_edit_var(vname, vval)
 	. = ..()
@@ -213,7 +215,7 @@
 */ // Honestly screw all of this stuff.
 // MOJAVE EDIT REMOVAL END
 
-/obj/item/gun/ballistic/handle_chamber(empty_chamber = TRUE, from_firing = TRUE, chamber_next_round = TRUE)
+/obj/item/gun/ballistic/handle_chamber(empty_chamber = TRUE, from_firing = TRUE, chamber_next_round = TRUE, atom/shooter = null)
 	if(!semi_auto && from_firing)
 		return
 	var/obj/item/ammo_casing/casing = chambered //Find chambered round
@@ -223,7 +225,13 @@
 			chambered = null
 		else if(casing_ejector || !from_firing)
 			casing.forceMove(drop_location()) //Eject casing onto ground.
-			casing.bounce_away(TRUE)
+			pixel_x = rand(-4, 4)
+			pixel_y = rand(-4, 4)
+			if(ismob(shooter))
+				pixel_z = 8 //bounce time
+				casing.SpinAnimation(speed = 3 SECONDS, loops = 2)
+				var/angle_of_movement = !isnull(shooter) ? (rand(-3000, 3000) / 100) + dir2angle(turn(shooter.dir, 180)) : rand(-3000, 3000) / 100
+				casing.AddComponent(/datum/component/movable_physics, _horizontal_velocity = rand(450, 550) / 100, _vertical_velocity = rand(400, 450) / 100, _horizontal_friction = rand(20, 24) / 100, _z_gravity = 9.80665, _z_floor = 0, _angle_of_movement = angle_of_movement)
 			SEND_SIGNAL(casing, COMSIG_CASING_EJECTED)
 			chambered = null
 		else if(empty_chamber)
@@ -254,7 +262,7 @@
 		bolt_locked = FALSE
 	if (user)
 		to_chat(user, span_notice("You rack the [bolt_wording] of [src]."))
-	process_chamber(!chambered, FALSE)
+	process_chamber(!chambered, FALSE, shooter = user)
 	if (bolt_type == BOLT_TYPE_LOCKING && !chambered)
 		bolt_locked = TRUE
 		playsound(src, lock_back_sound, lock_back_sound_volume, lock_back_sound_vary)
@@ -330,7 +338,7 @@
 			else
 				to_chat(user, span_notice("There's already a [magazine_wording] in [src]."))
 		return
-	if (istype(A, /obj/item/ammo_casing) || istype(A, /obj/item/ammo_box))
+	if (istype(A, /obj/item/ammo_casing) || istype(A, /obj/item/ammo_box/ms13/stripper) || istype(A, /obj/item/ammo_box/magazine/ammo_stack)) // MOJAVE SUN EDIT | ORIGINAL IS "if (istype(A, /obj/item/ammo_casing) || istype(A, /obj/item/ammo_box))"
 		if (bolt_type == BOLT_TYPE_NO_BOLT || internal_magazine)
 			if (chambered && !chambered.loaded_projectile)
 				chambered.forceMove(drop_location())
@@ -467,7 +475,9 @@
 		var/num_unloaded = 0
 		for(var/obj/item/ammo_casing/CB in get_ammo_list(FALSE, TRUE))
 			CB.forceMove(drop_location())
-			CB.bounce_away(FALSE, NONE)
+			var/angle_of_movement =(rand(-3000, 3000) / 100) + dir2angle(turn(user.dir, 180))
+			CB.AddComponent(/datum/component/movable_physics, _horizontal_velocity = rand(450, 550) / 100, _vertical_velocity = rand(400, 450) / 100, _horizontal_friction = rand(20, 24) / 100, _z_gravity = 9.80665, _z_floor = 0, _angle_of_movement = angle_of_movement)
+
 			num_unloaded++
 			var/turf/T = get_turf(drop_location())
 			if(T && is_station_level(T.z))
@@ -491,10 +501,12 @@
 
 /obj/item/gun/ballistic/examine(mob/user)
 	. = ..()
+	/* MOJAVE SUN EDIT BEGIN - I hate gaming.
 	var/count_chambered = !(bolt_type == BOLT_TYPE_NO_BOLT || bolt_type == BOLT_TYPE_OPEN)
-	. += "It has [get_ammo(count_chambered)] round\s remaining."
+	. += "It has [get_ammo(count_chambered)] round\s remaining." */
+	// MOJAVE SUN EDIT END
 
-	if (!chambered)
+	if (!chambered && !hidden_chambered)
 		. += "It does not seem to have a round chambered."
 	if (bolt_locked)
 		. += "The [bolt_wording] is locked back and needs to be released before firing or de-fouling."

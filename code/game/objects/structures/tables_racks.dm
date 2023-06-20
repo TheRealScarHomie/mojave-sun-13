@@ -41,10 +41,25 @@
 	if(_buildstack)
 		buildstack = _buildstack
 	AddElement(/datum/element/climbable)
+
 	var/static/list/loc_connections = list(
 		COMSIG_CARBON_DISARM_COLLIDE = .proc/table_carbon,
 	)
+
 	AddElement(/datum/element/connect_loc, loc_connections)
+
+	if (!(flags_1 & NODECONSTRUCT_1))
+		var/static/list/tool_behaviors = list(
+			TOOL_SCREWDRIVER = list(
+				SCREENTIP_CONTEXT_RMB = "Disassemble",
+			),
+
+			TOOL_WRENCH = list(
+				SCREENTIP_CONTEXT_RMB = "Deconstruct",
+			),
+		)
+
+		AddElement(/datum/element/contextual_screentip_tools, tool_behaviors)
 
 /obj/structure/table/examine(mob/user)
 	. = ..()
@@ -133,6 +148,9 @@
 	if(!(pushed_mob.pass_flags & PASSTABLE))
 		added_passtable = TRUE
 		pushed_mob.pass_flags |= PASSTABLE
+	for (var/obj/obj in user.loc.contents)
+		if(!obj.CanAllowThrough(pushed_mob))
+			return
 	pushed_mob.Move(src.loc)
 	if(added_passtable)
 		pushed_mob.pass_flags &= ~PASSTABLE

@@ -27,12 +27,13 @@
 					CAT_WEAPON,
 					CAT_AMMO,
 				), //MOJAVE EDIT START - Crafting categories
-				CAT_MEDICAL, 
+				CAT_MEDICAL,
 				CAT_ARMOR,
 				CAT_HEADGEAR,
 				CAT_UNDER,
 				CAT_MISCCLOTHING,
 				CAT_WEAPONS,
+				CAT_GUNS,
 				CAT_JUNK_AMMO,
 				CAT_STAN_AMMO,
 				CAT_ELECTRONICS,
@@ -52,6 +53,7 @@
 					CAT_MEAT,
 					CAT_SEAFOOD,
 					CAT_MISCFOOD,
+					CAT_MOTH,
 					CAT_PASTRY,
 					CAT_PIE,
 					CAT_PIZZA,
@@ -507,6 +509,7 @@
 				crafting_recipe.on_craft_completion(user, result)
 			else
 				to_chat(user, span_warning("Construction failed[result]"))
+				user.throw_alert_text(/atom/movable/screen/alert/text/nohappy, "Construction failed [result]", override = FALSE)
 			busy = FALSE
 		if("toggle_recipes")
 			display_craftable_only = !display_craftable_only

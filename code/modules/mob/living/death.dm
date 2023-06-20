@@ -72,6 +72,7 @@
 	set_stat(DEAD)
 	unset_machine()
 	timeofdeath = world.time
+	respawn_timeofdeath = world.time
 	tod = station_time_timestamp()
 	var/turf/T = get_turf(src)
 	if(mind && mind.name && mind.active && !istype(T.loc, /area/ctf))
@@ -90,6 +91,7 @@
 	med_hud_set_health()
 	med_hud_set_status()
 	stop_pulling()
+
 
 	SEND_SIGNAL(src, COMSIG_LIVING_DEATH, gibbed)
 	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_MOB_DEATH, src, gibbed)

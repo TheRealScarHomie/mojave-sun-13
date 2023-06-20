@@ -125,7 +125,7 @@ have ways of interacting with a specific mob and control it.
 ///Reactive events to being hit
 /datum/ai_controller/monkey/proc/retaliate(mob/living/L)
 	var/list/enemies = blackboard[BB_MONKEY_ENEMIES]
-	enemies[L] += MONKEY_HATRED_AMOUNT
+	enemies[WEAKREF(L)] += MONKEY_HATRED_AMOUNT
 
 /datum/ai_controller/monkey/proc/on_attackby(datum/source, obj/item/I, mob/user)
 	SIGNAL_HANDLER
@@ -173,7 +173,7 @@ have ways of interacting with a specific mob and control it.
 /datum/ai_controller/monkey/proc/on_entered(datum/source, atom/movable/arrived, atom/old_loc, list/atom/old_locs)
 	SIGNAL_HANDLER
 	var/mob/living/living_pawn = pawn
-	if(!IS_DEAD_OR_INCAP(living_pawn) && isliving(arrived))
+	if(!IS_DEAD_OR_INCAP(living_pawn) && isliving(arrived) && arrived.density)
 		var/mob/living/in_the_way_mob = arrived
 		in_the_way_mob.knockOver(living_pawn)
 		return

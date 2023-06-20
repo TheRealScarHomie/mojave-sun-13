@@ -65,7 +65,7 @@
 					span_danger("You start slicing [H]'s throat!"), \
 					span_hear("You hear a cutting noise!"), ignored_mobs = H)
 	H.show_message(span_userdanger("Your throat is being slit by [user]!"), MSG_VISUAL, \
-					"<span class = 'userdanger'>Something is cutting into your neck!</span>", NONE)
+					span_userdanger("Something is cutting into your neck!"), NONE)
 	log_combat(user, H, "attempted throat slitting", source)
 
 	playsound(H.loc, butcher_sound, 50, TRUE, -1)
@@ -132,7 +132,8 @@
 								span_notice("You butcher [meat]."))
 	butcher_callback?.Invoke(butcher, meat)
 	meat.harvest(butcher)
-	meat.gib(FALSE, FALSE, TRUE)
+	// meat.gib(FALSE, FALSE, TRUE) // MOJAVE SUN EDIT
+	qdel(meat) // MOJAVE SUN EDIT
 
 ///Special snowflake component only used for the recycler.
 /datum/component/butchering/recycler

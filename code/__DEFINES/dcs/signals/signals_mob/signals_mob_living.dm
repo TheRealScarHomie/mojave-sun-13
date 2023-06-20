@@ -47,6 +47,10 @@
 ///from base of mob/living/death(): (gibbed)
 #define COMSIG_LIVING_DEATH "living_death"
 
+///from base of mob/living/Write_Memory(): (dead, gibbed)
+#define COMSIG_LIVING_WRITE_MEMORY "living_write_memory"
+	#define COMPONENT_DONT_WRITE_MEMORY (1<<0)
+
 /// from /proc/healthscan(): (list/scan_results, advanced, mob/user, mode)
 /// Consumers are allowed to mutate the scan_results list to add extra information
 #define COMSIG_LIVING_HEALTHSCAN "living_healthscan"
@@ -77,3 +81,8 @@
 #define COMSIG_LIVING_SLAM_TABLE "living_slam_table"
 ///(NOT on humans) from mob/living/*/UnarmedAttack(): (atom/target, proximity, modifiers)
 #define COMSIG_LIVING_UNARMED_ATTACK "living_unarmed_attack"
+///From base of mob/living/MobBump() (mob/living)
+#define COMSIG_LIVING_MOB_BUMP "living_mob_bump"
+///From base of mob/living/ZImpactDamage() (mob/living, levels, turf/t)
+#define COMSIG_LIVING_Z_IMPACT "living_z_impact"
+	#define NO_Z_IMPACT_DAMAGE (1<<0)

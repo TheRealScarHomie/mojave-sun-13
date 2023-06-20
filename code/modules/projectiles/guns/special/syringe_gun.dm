@@ -42,7 +42,7 @@
 /obj/item/gun/syringe/can_shoot()
 	return syringes.len
 
-/obj/item/gun/syringe/handle_chamber()
+/obj/item/gun/syringe/handle_chamber(empty_chamber = TRUE, from_firing = TRUE, chamber_next_round = TRUE, atom/shooter = null)
 	if(chambered && !chambered.loaded_projectile) //we just fired
 		recharge_newshot()
 	update_appearance()
@@ -128,6 +128,13 @@
 	suppressed = TRUE //Softer fire sound
 	can_unsuppress = FALSE //Permanently silenced
 	syringes = list(new /obj/item/reagent_containers/syringe())
+
+///syndicate prototype for smuggling missions
+/obj/item/gun/syringe/syndicate/prototype
+	name = "prototype dart pistol"
+	desc = "Cybersun Industries prototype dart pistols. Delivering the syringes at the same \
+	speed in a smaller weapon proved to be a surprisingly complicated task."
+	syringes = list()
 
 /obj/item/gun/syringe/dna
 	name = "modified compact syringe gun"
